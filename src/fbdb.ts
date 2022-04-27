@@ -84,7 +84,6 @@ export class Database {
                 default:
                 break;
             }
-            
         })
     }
 }
@@ -120,16 +119,23 @@ export class CommandProcessor{
 
     processInput(cmdStr: string): string | null | undefined{
         let inputCmd = this.generateCommand(cmdStr)
-
-        this.transactionInProgress = inputCmd.command === DB_COMMAND.BEGIN
-
-        if(this.transactionInProgress){
+        
+        if(inputCmd.command === DB_COMMAND.ROLLBACK &&
+            this.transactionInProgress === false){
+            return "NO TRANSACTION"
+        }
+        else if(this.transactionInProgress){
             this.transMgr.processCommand(inputCmd)
 
             if(inputCmd.command === DB_COMMAND.COMMIT){
                 this.transactionInProgress = false
             }
-        }else{
+        }else if(!this.transactionInProgress && 
+                inputCmd.command === DB_COMMAND.BEGIN){
+                this.transactionInProgress = true
+                this.transMgr.processCommand(inputCmd)
+        }
+        else{
             let db = Database.getInstance()
             switch(inputCmd.command) {
 
