@@ -12,7 +12,8 @@ export enum DB_COMMAND {
     UNSET = "UNSET",
     NUMEQUALTO = "NUMEQUALTO",
     BEGIN = "BEGIN",
-    COMMIT = "COMMIT"
+    COMMIT = "COMMIT",
+    ROLLBACK = "ROLLBACK"
 }
 
 export enum INPUT_VALUE_IDX {

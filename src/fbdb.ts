@@ -1,13 +1,22 @@
 import { DBCommand, DB_COMMAND, INPUT_VALUE_IDX } from "./db";
 
 export class Database {
+    private static instance: Database;
 
     dataStore: Map<string, string>
     valueStore: Map<string, number>
 
-    constructor(){
+    private constructor(){
         this.dataStore = new Map<string, string>()
         this.valueStore = new Map<string, number>()
+    }
+
+    public static getInstance(): Database {
+        if(!Database.instance) {
+            Database.instance = new Database()
+        }
+
+        return Database.instance
     }
 
     
@@ -59,27 +68,36 @@ export class Database {
         return valFreq
     }
 
-    /*commit(commands: Array<DBCommand>): boolean{
+    commit(commands: Array<DBCommand>){
 
         commands.forEach((dbCmd) => {
-            if(dbCmd.command === DB_COMMAND.GET){
-                this.get(dbCmd.key)
+            switch(dbCmd.command){
+                case "SET":
+                    this.set(dbCmd)
+                    break;
+                case "GET":
+                    this.get(dbCmd)
+                    break;
+                case "UNSET":
+                    this.unset(dbCmd)
+                    break;
+                default:
+                break;
             }
+            
         })
-    }*/
+    }
 }
 
 export class CommandProcessor{
 
     command: string
     transMgr: TransactionMgr
-    db: Database
     transactionInProgress: boolean
   
     constructor(){
       this.command = ""
       this.transMgr = new TransactionMgr()
-      this.db = new Database()
       this.transactionInProgress = false
     }
   
@@ -112,18 +130,19 @@ export class CommandProcessor{
                 this.transactionInProgress = false
             }
         }else{
+            let db = Database.getInstance()
             switch(inputCmd.command) {
 
                 case "SET":
-                  this.db.set(inputCmd)
+                  db.set(inputCmd)
                 break;
                 case 'GET':
-                  return this.db.get(inputCmd)
+                  return db.get(inputCmd)
                 case 'UNSET':
-                  this.db.unset(inputCmd)
+                  db.unset(inputCmd)
                 break;
                 case 'NUMEQUALTO':
-                   return this.db.numEqualTo(inputCmd) + ''
+                   return db.numEqualTo(inputCmd) + ''
                             
                 default:
                     return 'Invalid Command!'
@@ -141,7 +160,25 @@ class TransactionMgr {
     }
  
     processCommand(cmd: DBCommand){
-        this.commands.push(cmd)
+
+        if(cmd.command === DB_COMMAND.ROLLBACK){
+            let idx = this.commands.length - 1
+            let mostRecentBeginExists = true
+            while(mostRecentBeginExists){
+                
+                if(this.commands[idx].command === DB_COMMAND.BEGIN){
+                    mostRecentBeginExists = false
+                }
+                this.commands.pop()
+            }
+
+            return
+        }else if(cmd.command === DB_COMMAND.COMMIT){
+             Database.getInstance().commit(this.commands)
+             this.commands = []   
+        }else{
+            this.commands.push(cmd)
+        }
     }
  }
 
