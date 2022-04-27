@@ -1,2 +1,2 @@
 #ignore generated .js files
-*.js
+./src/*.js
